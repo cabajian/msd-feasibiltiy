@@ -8,16 +8,12 @@
  *   established in the Preliminary Detailed Design phase of RIT MSD I.
  */
  
- #include "mbed.h"
-#include <cstdint>
+#include "mbed.h"
+// #include <cstdint>
+#include "msd.h"
+#include <algorithm>
 
 I2C i2c(PTE25, PTE24); //SDA,SCL
-
-#define LSM6DSOX_ADDR           (0x6A<<1)
-#define LSM6DSOX_WHO_AM_I_ADDR  (0x0F)
-#define LSM6DSOX_CTRL1_XL_ADDR  (0x10)
-#define LSM6DSOX_CTRL8_XL_ADDR  (0x17)
-#define LSM6DSOX_OUTX_L_A_ADDR  (0x28)
 
 /*
  * Main function.   
@@ -59,4 +55,30 @@ int main() {
         printf("Z: %f\n\n", (acc_z / 2048.0f));
         ThisThread::sleep_for(5s);
     }
+}
+
+
+/*
+ * I2C Read function.   
+ */
+void readReg(int address, int subaddress, const char *data, int length = 1) {
+    // Set register to read
+    const char subaddr[1] = {(char)subaddress};
+    i2c.write(address, subaddr, 1);
+    // Read register
+    char rdata[length+1];
+    rdata[0] = (char)subaddress;
+    std::copy(&data[0], &data[length-1], &rdata[1]);
+    i2c.read(address, rdata, length+1);
+}
+
+/*
+ * I2C Write function.    
+ */
+void writeReg(int address, int subaddress, const char *data, int length = 1) {
+    // Write register
+    char wdata[length+1];
+    wdata[0] = (char)subaddress;
+    std::copy(&data[0], &data[length-1], &wdata[1]);
+    int res1 = i2c.write(address, wdata, length+1);
 }
