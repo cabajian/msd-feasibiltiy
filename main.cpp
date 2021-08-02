@@ -10,21 +10,40 @@
  
 #include "mbed.h"
 #include "msd.h"
+#include <Adafruit_Sensor.h>
+#include <Adafruit_BNO055.h>
+#include <imumaths.h>
 
 I2C i2c(PTE25, PTE24); //SDA,SCL
+DigitalInOut bnoRst(PTB9);
+Adafruit_BNO055 bno = Adafruit_BNO055(-1, BNO055_ADDRESS_A, &i2c);
 
 /*
  * Main function.   
  */
 int main() {
+    uint8_t bno_sys_stat, bno_self_test, bno_sys_err;
     char data[14];
-    i2c.frequency(400000);
+    i2c.frequency(100000);
 
-    /* WHO_AM_I printout */
-    readReg(LSM6DSOX_ADDR, LSM6DSOX_WHO_AM_I_ADDR, data, 1);
-    printf("WHO_AM_I: %x\n", data[0]);
+    /* Initialize the Orientation Board */
+    // bnoRst = 0;
+    // bnoRst.output();
+    // ThisThread::sleep_for(1ms);
+    // bnoRst.mode(PullUp);
+    // ThisThread::sleep_for(1s);
+    if(!bno.begin(bno.OPERATION_MODE_NDOF)) {
+        printf("BNO055 not detected!\n");
+        while(1);
+    } else {
+        printf("BNO055 was detected!\r\n");
+    }
+    ThisThread::sleep_for(1ms);
+    bno.setExtCrystalUse(true);
+    bno.getSystemStatus(&bno_sys_stat, &bno_self_test, &bno_sys_err);
+    printf("BNO055 system status: %d\t%d\t%d\n", bno_sys_stat, bno_self_test, bno_sys_err);
 
-    /* LSM6DSOX config */
+    /* Initialize the LSM6DSOX */
     // CTRL3_C (Control register 3)
     //   set self-clearing reset bit
     setBits(LSM6DSOX_ADDR, LSM6DSOX_CTRL3_C_ADDR, 0x01);
@@ -37,7 +56,6 @@ int main() {
     // CTRL3_C (Control register 3)
     //   set BDU to only update output regs after reading
     setBits(LSM6DSOX_ADDR, LSM6DSOX_CTRL3_C_ADDR, 0x40);
-
     /* Accelerometer config */
     // CTRL1_XL (Accelerometer control register 1)
     //   416Hz, +-8g
@@ -49,7 +67,6 @@ int main() {
     // CTRL9_XL (Control register 9)
     //   set "I3C disable" bit since we aren't using it
     setBits(LSM6DSOX_ADDR, LSM6DSOX_CTRL9_XL_ADDR, 0x01);
-
     /* Gyroscope config */
     // CTRL2_G (Gyroscope control register 2)
     //   416Hz, 2000dps
@@ -58,7 +75,28 @@ int main() {
 
 
     while (true) {
-        /* Read gyro/accel data */
+        /* Orientation Board Reading */
+        printf("----- ORIENTATION BOARD -----\n");
+        int8_t bno_temp_i = bno.getTemp();
+        printf("Temp: %d\n", bno_temp_i);
+        // Possible vector values can be:
+        // - VECTOR_ACCELEROMETER - m/s^2
+        // - VECTOR_MAGNETOMETER  - uT
+        // - VECTOR_GYROSCOPE     - rad/s
+        // - VECTOR_EULER         - degrees
+        // - VECTOR_LINEARACCEL   - m/s^2
+        // - VECTOR_GRAVITY       - m/s^2
+        imu::Vector<3> euler = bno.getVector(Adafruit_BNO055::VECTOR_EULER);
+        /* Display the floating point data */
+        printf("X: %f Y: %f Z: %f\n", euler.x(), euler.y(), euler.z());
+        /* Display calibration status for each sensor on the Orientation Board */
+        uint8_t system, gyro, accel, mag = 0;
+        bno.getCalibration(&system, &gyro, &accel, &mag);
+        printf("CALIBRATION: Sys=%d, Gyro=%d, Accel=%d, Mag=%d\n", (int)(system), (int)(gyro), (int)(accel), (int)(mag));
+
+
+        /* LSM6DSOX Reading */
+        printf("----- LSM6DSOX IMU -----\n");
         readReg(LSM6DSOX_ADDR, LSM6DSOX_OUT_TEMP_L_ADDR, data, 14);
         int16_t temp_i = (data[1] << 8 | data[0]);
         double  temp_d = (temp_i/256.0) + 25.0;
@@ -82,7 +120,6 @@ int main() {
         printf("AccY: %f\n",   acc_dy);
         printf("AccZ: %f\n\n", acc_dz);
         ThisThread::sleep_for(100ms);
-        // wait_us(150);
     }
 }
 
