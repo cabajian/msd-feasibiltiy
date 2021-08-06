@@ -32,13 +32,14 @@ int main() {
     // ThisThread::sleep_for(1ms);
     // bnoRst.mode(PullUp);
     // ThisThread::sleep_for(1s);
-    if(!bno.begin(bno.OPERATION_MODE_NDOF)) {
+    if(!bno.begin()) {
         printf("BNO055 not detected!\n");
         while(1);
     } else {
         printf("BNO055 was detected!\r\n");
     }
-    ThisThread::sleep_for(1ms);
+    ThisThread::sleep_for(1s);
+    writeReg(BNO055_ADDRESS_A<<1, bno.BNO055_OPR_MODE_ADDR, bno.OPERATION_MODE_NDOF);
     bno.setExtCrystalUse(true);
     bno.getSystemStatus(&bno_sys_stat, &bno_self_test, &bno_sys_err);
     printf("BNO055 system status: %d\t%d\t%d\n", bno_sys_stat, bno_self_test, bno_sys_err);
@@ -119,7 +120,7 @@ int main() {
         printf("AccX: %f\n",   acc_dx);
         printf("AccY: %f\n",   acc_dy);
         printf("AccZ: %f\n\n", acc_dz);
-        ThisThread::sleep_for(100ms);
+        ThisThread::sleep_for(1s);
     }
 }
 
@@ -131,8 +132,10 @@ void readReg(int address, uint8_t subaddress, char *data, int length = 1) {
     // Set register to read
     char subaddr[1] = {subaddress};
     i2c.write(address, subaddr, 1);
+    // ThisThread::sleep_for(1ms);
     // Read register
     i2c.read(address, data, length);
+    // ThisThread::sleep_for(1ms);
 }
 
 /*

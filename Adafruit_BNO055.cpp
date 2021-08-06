@@ -82,7 +82,7 @@ bool Adafruit_BNO055::begin(adafruit_bno055_opmode_t mode)
   write8(BNO055_PAGE_ID_ADDR, 0);
 
   /* Set the output units */
-  /*
+  /* 
   uint8_t unitsel = (0 << 7) | // Orientation = Android
                     (0 << 4) | // Temperature = Celsius
                     (0 << 2) | // Euler = Degrees
