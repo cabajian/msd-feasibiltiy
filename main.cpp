@@ -13,9 +13,9 @@
 #include <Adafruit_Sensor.h>
 #include <Adafruit_BNO055.h>
 #include <imumaths.h>
+#include <jet.h>
 
 I2C i2c(PTE25, PTE24); //SDA,SCL
-DigitalInOut bnoRst(PTB9);
 Adafruit_BNO055 bno = Adafruit_BNO055(-1, BNO055_ADDRESS_A, &i2c);
 
 /*
@@ -27,11 +27,6 @@ int main() {
     i2c.frequency(100000);
 
     /* Initialize the Orientation Board */
-    // bnoRst = 0;
-    // bnoRst.output();
-    // ThisThread::sleep_for(1ms);
-    // bnoRst.mode(PullUp);
-    // ThisThread::sleep_for(1s);
     if(!bno.begin()) {
         printf("BNO055 not detected!\n");
         while(1);
@@ -74,6 +69,10 @@ int main() {
     writeReg(LSM6DSOX_ADDR, LSM6DSOX_CTRL2_G_ADDR, 0x6C);
     double gyr_sens = 70.0; // 70.0 milli-dps per bit in 2000dps scale
 
+    // jet_setup(bno);
+    // while (true) {
+    //   jet_loop(bno);
+    // }
 
     while (true) {
         /* Orientation Board Reading */
@@ -132,10 +131,8 @@ void readReg(int address, uint8_t subaddress, char *data, int length = 1) {
     // Set register to read
     char subaddr[1] = {subaddress};
     i2c.write(address, subaddr, 1);
-    // ThisThread::sleep_for(1ms);
     // Read register
     i2c.read(address, data, length);
-    // ThisThread::sleep_for(1ms);
 }
 
 /*
