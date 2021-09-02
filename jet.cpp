@@ -45,7 +45,7 @@ void jet_loop(Adafruit_BNO055 bno) {
     Serial.print(q.z(), 4);
     Serial.println(F(""));
   #endif
-  #if 1    // send Euler angles, my preferred format
+  #if 0    // send Euler angles, my preferred format
     printf("HeadingPitchRoll: %f %f %f\n", heading, pitch, roll);
     // printf("%f", heading);  // heading, nose-right is positive
     // printf(" ");
@@ -54,14 +54,10 @@ void jet_loop(Adafruit_BNO055 bno) {
     // printf("%f", roll);     // roll, leftwing-up is positive
     // printf("");
   #endif
-  #if 0    // send Euler angles, alternate (Adafruit?) format
-    Serial.print(F("Orientation: "));
-    Serial.print(heading);  // heading, nose-right is positive
-    Serial.print(F(" "));
-    Serial.print(roll);     // roll, leftwing-up is positive
-    Serial.print(F(" "));
-    Serial.print(pitch);    // pitch, nose-up is positive
-    Serial.println(F(""));
+  #if 1    // send Euler angles, alternate (Adafruit?) format
+    sensors_event_t evnt;
+    bno.getEvent(&evnt);
+    printf("Orientation: %f %f %f\n", evnt.orientation.x, evnt.orientation.y, evnt.orientation.z);
   #endif
   #if 0    // send calibration status
     uint8_t sys, gyro, accel, mag = 0;
