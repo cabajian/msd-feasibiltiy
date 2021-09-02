@@ -15,8 +15,15 @@
 #include <imumaths.h>
 #include <jet.h>
 
+// #define EX_PROCESSING
+// #define EX_VELOCITY
+// #define EX_SCALE
+#define EX_FSR
+
 I2C i2c(PTE25, PTE24); //SDA,SCL
 Adafruit_BNO055 bno = Adafruit_BNO055(-1, BNO055_ADDRESS_A, &i2c);
+// Initialize a pins to perform analog input
+AnalogIn ain(A0);
 
 /*
  * Main function.   
@@ -24,7 +31,7 @@ Adafruit_BNO055 bno = Adafruit_BNO055(-1, BNO055_ADDRESS_A, &i2c);
 int main() {
     uint8_t bno_sys_stat, bno_self_test, bno_sys_err;
     char data[14];
-    i2c.frequency(100000);
+    i2c.frequency(400000);
 
     /* Initialize the Orientation Board */
     if(!bno.begin()) {
@@ -69,11 +76,53 @@ int main() {
     writeReg(LSM6DSOX_ADDR, LSM6DSOX_CTRL2_G_ADDR, 0x6C);
     double gyr_sens = 70.0; // 70.0 milli-dps per bit in 2000dps scale
 
-    // jet_setup(bno);
-    // while (true) {
-    //   jet_loop(bno);
-    // }
 
+    #if defined(EX_PROCESSING)
+    /* Processing example program. */
+    jet_setup(bno);
+    while (true) {
+        jet_loop(bno);
+    }
+
+    #elif defined(EX_VELOCITY)
+    /* Velocity integration example program. */
+    while (true) {
+        int lin_accel[3] = {0,0,0};
+        int count = 0;
+        do  {
+            imu::Vector<3> vec = bno.getVector(Adafruit_BNO055::VECTOR_LINEARACCEL);
+            lin_accel[0] += vec[0];
+            lin_accel[1] += vec[1];
+            lin_accel[2] += vec[2];
+            // printf("    X: %f Y: %f Z: %f\n", lin_accel[0], lin_accel[1], lin_accel[2]);
+            count++;
+            ThisThread::sleep_for(10ms);
+        } while (count < 10);
+        /* Display the floating point (averaged) data */
+        printf("AVG: X: %f Y: %f Z: %f\n", lin_accel[0]/10, lin_accel[1]/10, lin_accel[2]/10);
+    }
+
+    #elif defined(EX_SCALE)
+    /* Chest scale example program. */
+    while (true) {
+    }
+
+    #elif defined(EX_FSR)
+    /* FSR example program. */
+    // Setup ADC
+    while (true) {
+        float reading = 0.0;
+        int count = 0;
+        do  {
+            reading += ain.read();
+            count++;
+            ThisThread::sleep_for(100ms);
+        } while (count < 100);
+        printf("Avg Analog %: %3.3f%%\n", (reading/count) * 100.0f);
+    }
+
+    #else
+    /* Serial printout example program. */
     while (true) {
         /* Orientation Board Reading */
         printf("----- ORIENTATION BOARD -----\n");
@@ -86,9 +135,9 @@ int main() {
         // - VECTOR_EULER         - degrees
         // - VECTOR_LINEARACCEL   - m/s^2
         // - VECTOR_GRAVITY       - m/s^2
-        imu::Vector<3> euler = bno.getVector(Adafruit_BNO055::VECTOR_EULER);
+        imu::Vector<3> vec = bno.getVector(Adafruit_BNO055::VECTOR_LINEARACCEL);
         /* Display the floating point data */
-        printf("X: %f Y: %f Z: %f\n", euler.x(), euler.y(), euler.z());
+        printf("X: %f Y: %f Z: %f\n", vec.x(), vec.y(), vec.z());
         /* Display calibration status for each sensor on the Orientation Board */
         uint8_t system, gyro, accel, mag = 0;
         bno.getCalibration(&system, &gyro, &accel, &mag);
@@ -121,6 +170,7 @@ int main() {
         printf("AccZ: %f\n\n", acc_dz);
         ThisThread::sleep_for(1s);
     }
+    #endif
 }
 
 
